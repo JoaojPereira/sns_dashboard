@@ -1,8 +1,14 @@
-## Análise de Ineficiências nas Urgências Hospitalares
+# Dashboard SNS - Análise de Ineficiências nas Urgências Hospitalares
 
-Este projeto analisa dados públicos do sns português (**2016-2026**) para identificar padrões de ineficiência operacional, financeira e de recursos humanos nas urgências hospitalares.
+> **Dashboard de BI que analisa dados do SNS português (2016-2026) identificando ineficiências nas urgências hospitalares.**  
+> **301M atendimentos | 41,93% urgências falsas | €15,2 mil milhões desperdiçados | 68 hospitais**  
+> **Power BI · DAX · Python**
 
-**Período de Análise:** Setembro 2016 - Dezembro 2026 (9.75 anos de dados históricos)
+---
+
+Este projeto analisa dados públicos do SNS português (**2016-2026**) para identificar padrões de ineficiência operacional, financeira e de recursos humanos nas urgências hospitalares.
+
+**Período de Análise:** Setembro 2016 - Março 2026 (9.5 anos de dados históricos)
 
 ---
 
@@ -66,7 +72,7 @@ dim_indicador (1) ----(*) fact_monitorizacao_sazonal
 
 - **dim_calendar:** TimeKey, Data, Ano, Mês, Trimestre, Feriados PT, Sazonalidade
 - **dim_regiao:** RegiaoID (1-5), Norte/Centro/LVT/Alentejo/Algarve
-- **dim_instituicao:** InstituicaoID (1-75), Nome, Tipo (ULS/CH/Hospital/CHU), RegiaoID (68 instituições ativas em 2016-2025)
+- **dim_instituicao:** InstituicaoID (1-75), Nome, Tipo (ULS/CH/Hospital/CHU), RegiaoID (68 instituições ativas em 2016-2026)
 - **dim_indicador:** IndicadorID (1-4), Tempo Espera/Taxa Verde-Azul/Taxa Internamento/Nº Episódios
 
 ---
@@ -264,7 +270,7 @@ Status Tempo Espera =
 ### 6. Análise Temporal e Sazonalidade
 
 ```dax
-// Comparações Year-over-Year (2016-2025)
+// Comparações Year-over-Year (2016-2026)
 Total Atendimentos Ano Anterior = 
     CALCULATE(
         [Total Atendimentos],
@@ -533,7 +539,7 @@ Tem Dados RH =
 ### Passo 2: Criar DimCalendar
 ```dax
 // Modeling → New Table → Colar código de dim_calendar.m
-// Abrange 2016-2025 com feriados PT
+// Abrange 2016-2026 com feriados PT
 ```
 
 ### Passo 3: Criar Relacionamentos
@@ -616,7 +622,7 @@ Configurar Row-Level Security se necessário
 // Criar bookmarks para diferentes vistas:
 // - "Vista Críticos" (filtrado Score > 70)
 // - "Vista Top Performers" (Top 20% produtividade)
-// - "Vista Temporal 2020-2025" (últimos 5 anos)
+// - "Vista Temporal 2021-2026" (últimos 5 anos)
 ```
 
 ### Performance Optimization
@@ -649,7 +655,7 @@ Diferença: O SNS suporta a maior parte dos custos, cobrando apenas uma pequena 
   - Monitorização: Diária (tempo espera, taxas)
   - Não permite análise intradiária (turnos, horários de pico)
 
-- **Dados 2016-2025:**
+- **Dados 2016-2026:**
   - Período completo de 10 anos
   - Permite análise de tendências de longo prazo
   - Identificação de impactos de políticas públicas
@@ -660,8 +666,8 @@ Diferença: O SNS suporta a maior parte dos custos, cobrando apenas uma pequena 
 ## Ficheiros Principais
 
 ### Dados (Prontos para Importação)
-- ✅ `fact_atendimentos_urgencia_mensal.csv` (4.131 registos, 2016-2025)
-- ✅ `fact_monitorizacao_sazonal.csv` (32.870 registos, 2016-2025)
+- ✅ `fact_atendimentos_urgencia_mensal.csv` (4.131 registos, 2016-2026)
+- ✅ `fact_monitorizacao_sazonal.csv` (32.870 registos, 2016-2026)
 - ✅ `dim_regiao.csv` (5 regiões)
 - ✅ `dim_instituicao.csv` (75 instituições, 68 ativas)
 - ✅ `dim_indicador.csv` (4 indicadores)
@@ -670,7 +676,7 @@ Diferença: O SNS suporta a maior parte dos custos, cobrando apenas uma pequena 
 - ✅ `relatorio_sns.md` - **Relatório SNS** (Substitui anteriores)
 - ✅ `dax/medidas_dax_completas.dax` - 50+ medidas organizadas
 - ✅ `dax/medidas_profissionais.dax` - Análise específica de RH
-- ✅ `dim_calendar.m` - Calendário com feriados PT (2016-2025)
+- ✅ `dim_calendar.m` - Calendário com feriados PT (2016-2026)
 - ✅ `README.md` - Este ficheiro
 
 ### Scripts Histórico (Arquivo)
@@ -710,6 +716,15 @@ Para questões sobre:
 ---
 
 ## Changelog
+
+### v3.6 - Março 2026 (Atualização Recente)
+- ✅ **Dados atualizados até Março 2026:** Período de análise estendido para 2016-2026
+- ✅ **Novo HOWTO:** Guia completo para criar DimCalendar (`HOWTO_DimCalendar.md`)
+- ✅ **Código M DimCalendar:** Arquivo dedicado para geração da tabela de calendário (`sns/csv/DimCalendar.m`)
+- ✅ **Script de automação:** Batch script para atualização automática dos dados (`Atualizar_Dados_SNS.bat`)
+- ✅ **Dashboard atualizado:** SNS_Dashboard.pbix com dados mais recentes
+- ✅ **Documentação melhorada:** README atualizado com estatísticas-chave do projeto
+- 📊 **Estatísticas do projeto:** 301M atendimentos | 41,93% urgências falsas | €15,2 mil milhões desperdiçados | 68 hospitais
 
 ### v3.5 - Dezembro 2025 (Atualização Final)
 - ✅ **Tabela renomeada:** `FactAtendimentosUrgencia.csv` → `fact_atendimentos_urgencia_mensal.csv` (compatibilidade Power BI)
@@ -774,7 +789,7 @@ Para questões sobre:
 **Última Atualização:** 20 de Dezembro de 2025  
 **Versão:** V 3.5  
 **Autor:** João Domingues Pereira - Projeto business intelligence SNS  
-**Período de Dados:** 2016-2025 (9.75 anos)
+**Período de Dados:** 2016-2026 (10 anos)
 
 ## Nota sobre custos
 
