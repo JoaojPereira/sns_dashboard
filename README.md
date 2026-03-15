@@ -1,8 +1,8 @@
 ## Análise de Ineficiências nas Urgências Hospitalares
 
-Este projeto analisa dados públicos do sns português (**2016-2025**) para identificar padrões de ineficiência operacional, financeira e de recursos humanos nas urgências hospitalares.
+Este projeto analisa dados públicos do sns português (**2016-2026**) para identificar padrões de ineficiência operacional, financeira e de recursos humanos nas urgências hospitalares.
 
-**Período de Análise:** Setembro 2016 - Dezembro 2025 (9.75 anos de dados históricos)
+**Período de Análise:** Setembro 2016 - Dezembro 2026 (9.75 anos de dados históricos)
 
 ---
 
@@ -11,7 +11,7 @@ Este projeto analisa dados públicos do sns português (**2016-2025**) para iden
 **Portal da Transparência do SNS**  
 🔗 https://transparencia.sns.gov.pt/explore/?sort=modified
 
-### Datasets utilizados (2016-2025):
+### Datasets utilizados (2016-2026):
 
 1. **atendimentos-em-urgencia-triagem-manchester.csv** - Atendimentos por cor de triagem Manchester
 2. **trabalhadores-por-grupo-profissional.csv** - Recursos humanos por categoria
