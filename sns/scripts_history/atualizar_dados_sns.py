@@ -11,6 +11,14 @@ import requests
 from datetime import datetime
 import os
 
+# Diretório para backups
+BACKUP_DIR = r"E:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\Backup"
+
+# Criar diretório de backup se não existir
+if not os.path.exists(BACKUP_DIR):
+    os.makedirs(BACKUP_DIR)
+    print(f"📁 Pasta de backup criada: {BACKUP_DIR}\n")
+
 print("=" * 80)
 print("ATUALIZAÇÃO DE DADOS DO PORTAL DA TRANSPARÊNCIA SNS")
 print("=" * 80)
@@ -22,17 +30,17 @@ print()
 DATASETS = {
     'atendimentos': {
         'url': 'https://transparencia.sns.gov.pt/api/explore/v2.1/catalog/datasets/atendimentos-em-urgencia-triagem-manchester/exports/csv?lang=pt&timezone=Europe%2FLisbon&use_labels=true&delimiter=%3B',
-        'nome_original': '../csv/atendimentos_urgencia_triagem_manchester.csv',
+        'nome_original': 'atendimentos-em-urgencia-triagem-manchester.csv',
         'descricao': 'Atendimentos em Urgência - Triagem Manchester'
     },
     'trabalhadores': {
         'url': 'https://transparencia.sns.gov.pt/api/explore/v2.1/catalog/datasets/trabalhadores-por-grupo-profissional/exports/csv?lang=pt&timezone=Europe%2FLisbon&use_labels=true&delimiter=%3B',
-        'nome_original': '../csv/trabalhadores_grupo_profissional.csv',
+        'nome_original': 'trabalhadores-por-grupo-profissional.csv',
         'descricao': 'Trabalhadores por Grupo Profissional'
     },
     'monitorizacao': {
         'url': 'https://transparencia.sns.gov.pt/api/explore/v2.1/catalog/datasets/monitorizacao-sazonal-csh/exports/csv?lang=pt&timezone=Europe%2FLisbon&use_labels=true&delimiter=%3B',
-        'nome_original': '../csv/monitorizacao_sazonal_csh.csv',
+        'nome_original': 'monitorizacao-sazonal-csh.csv',
         'descricao': 'Indicadores de Monitorização Sazonal'
     }
 }
@@ -46,9 +54,12 @@ def descarregar_dataset(config, nome_dataset):
     try:
         # Verificar se ficheiro antigo existe (backup)
         if os.path.exists(config['nome_original']):
-            backup_name = f"{config['nome_original']}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            os.rename(config['nome_original'], backup_name)
-            print(f"✓ Backup criado: {backup_name}")
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_filename = f"{config['nome_original']}.backup_{timestamp}"
+            backup_path = os.path.join(BACKUP_DIR, backup_filename)
+            os.rename(config['nome_original'], backup_path)
+            print(f"✓ Backup criado: {backup_filename}")
+            print(f"  Localização: {BACKUP_DIR}")
         
         # Descarregar
         print(f"🌐 A conectar ao portal SNS...")

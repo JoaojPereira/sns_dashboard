@@ -1,12 +1,12 @@
-# Scripts Essenciais
+# 📂 Scripts Essenciais
 
 Esta pasta contém apenas os **3 scripts essenciais** para manutenção do projeto.
 
 ---
 
-## Scripts Ativos
+## ✅ Scripts Ativos
 
-### `atualizar_dados_sns.py`
+### 1️⃣ `atualizar_dados_sns.py` ⭐
 **Função:** Download automático e normalização de dados do Portal da Transparência SNS
 
 **O que faz:**
@@ -23,22 +23,21 @@ Esta pasta contém apenas os **3 scripts essenciais** para manutenção do proje
 - Quando o Portal SNS publicar novos dados
 
 **Como executar:**
-```powershell
-python atualizar_dados_sns.py
+```duplo clique em sns\Atualizar_Dados_SNS.bat
 ```
 
 ---
 
-### `atualizar_tabelas_fact.py`
+### 2️⃣ `atualizar_tabelas_fact.py` ⭐
 **Função:** Atualiza as tabelas Fact do modelo Star Schema
 
 **O que faz:**
-- Lê os CSVs da pasta csv/
+- Lê os CSVs atualizados
 - Filtra apenas dados de 2016 em diante (remove 2013-2015)
-- Mapeia instituições usando tabela dim_instituicao com cache de performance
+- Mapeia instituições usando tabela DimInstituicao com cache de performance
 - Gera TimeKeys para relacionamentos temporais
-- Atualiza csv/fact_atendimentos_urgencia_mensal.csv (4.131 registos)
-- Atualiza csv/fact_monitorizacao_sazonal.csv (32.870 registos)
+- Atualiza FactAtendimentosUrgencia_Mensal.csv (4.131 registos)
+- Atualiza FactMonitorizacaosazonal.csv (32.870 registos)
 - Cria backups automáticos antes de sobrescrever
 
 **Quando usar:**
@@ -52,7 +51,7 @@ python atualizar_tabelas_fact.py
 
 ---
 
-### `converter_md_to_html.py`
+### 3️⃣ `converter_md_to_html.py`
 **Função:** Converte ficheiros Markdown para HTML com estilos
 
 **O que faz:**
@@ -71,14 +70,17 @@ python converter_md_to_html.py
 
 ---
 
-## Ficheiros de Suporte
+## 🗂️ Ficheiros de Suporte
 
-### `dax/medidas_profissionais.dax`
+### `ANALISE_SCRIPTS.md`
+Documento de análise que identificou scripts redundantes e justifica a consolidação.
+
+### `Medidas_Profissionais.dax`
 Fórmulas DAX específicas para análise de recursos humanos (referência).
 
 ---
 
-## Workflow de Atualização Completa
+## 🎯 Workflow de Atualização Completa
 
 ```
 1. python atualizar_dados_sns.py        → Descarrega dados novos
@@ -88,7 +90,21 @@ Fórmulas DAX específicas para análise de recursos humanos (referência).
 
 ---
 
-## Dependências
+## 📋 O Que Foi Eliminado?
+
+**42 scripts** obsoletos foram removidos, incluindo:
+- ✅ Scripts de normalização (integrados em atualizar_dados_sns.py)
+- ✅ Scripts de limpeza (integrados)
+- ✅ Scripts de correção pontual (já aplicadas)
+- ✅ Scripts de análise exploratória (executados uma vez)
+- ✅ Scripts de criação de dimensões (executados uma vez)
+- ✅ Conversores específicos (consolidados num genérico)
+
+**Resultado:** Manutenção 93% mais simples!
+
+---
+
+## 🔄 Dependências
 
 Instalar antes de executar:
 ```powershell
@@ -102,11 +118,11 @@ Ou ativar o ambiente virtual:
 
 ---
 
-## Suporte
+## 📞 Suporte
 
 Para adicionar novos scripts ou modificar os existentes, consulte a documentação principal no README.md da raiz do projeto.
 
 ---
 
 **Última atualização:** 20/12/2025  
-**Consolidação:** De 45 scripts para 3 essenciais
+**Consolidação:** De 45 scripts para 3 essenciais ✅
