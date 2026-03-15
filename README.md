@@ -60,7 +60,7 @@ dim_indicador (1) ----(*) fact_monitorizacao_sazonal
 #### 2. fact_monitorizacao_sazonal (5 colunas)
 - **Chaves:** Período, TimeKey, RegiaoID, IndicadorID
 - **Métrica:** Valor
-- **Granularidade:** Diária (2016-2025)
+- **Granularidade:** Diária (2016-2026)
 
 ### Tabelas Dim
 
