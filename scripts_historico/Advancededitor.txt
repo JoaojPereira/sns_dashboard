@@ -1,0 +1,376 @@
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\trabalhadores-por-grupo-profissional.csv"),[Delimiter=";", Columns=19, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Removed Other Columns" = Table.SelectColumns(#"Promoted Headers",{"Período", "Região", "Instituição", "Médicos S/ Internos", "Médicos Internos", "Enfermeiros", "Técnicos Superiores de Saúde", "Técnicos Superiores de Diagnóstico e Terapêutica", "Assistentes Técnicos"}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Removed Other Columns",{{"Região", Text.Proper, type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Capitalized Each Word",{{"Região", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Região", Text.Clean, type text}}),
+    #"Capitalized Each Word1" = Table.TransformColumns(#"Cleaned Text",{{"Instituição", Text.Proper, type text}}),
+    #"Trimmed Text1" = Table.TransformColumns(#"Capitalized Each Word1",{{"Instituição", Text.Trim, type text}}),
+    #"Cleaned Text1" = Table.TransformColumns(#"Trimmed Text1",{{"Instituição", Text.Clean, type text}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Cleaned Text1","E.P.E.","Epe",Replacer.ReplaceText,{"Instituição"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","Lvt","LVT",Replacer.ReplaceText,{"Região"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","Hospital Arcebispo João Crisóstomo - Cantanhede","Hospital Arcebispo João Crisóstomo - Cantanhede, Epe",Replacer.ReplaceText,{"Instituição"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Replaced Value2",{{"Médicos S/ Internos", "Medicos"}, {"Médicos Internos", "Medicos_Internos"}, {"Técnicos Superiores de Saúde", "Tec_Sup_saude"}, {"Técnicos Superiores de Diagnóstico e Terapêutica", "Tec_Sup_Diag_Terapêutica"}, {"Assistentes Técnicos", "Assis_Tec"}}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Período", type date}})
+in
+    #"Changed Type"
+
+let
+    Source = DimTrabalhadores,
+    #"Removed Other Columns" = Table.SelectColumns(Source,{"Instituição"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Other Columns",{{"Instituição", "Instituicao"}}),
+    #"Removed Duplicates" = Table.Distinct(#"Renamed Columns"),
+    #"Added Index" = Table.AddIndexColumn(#"Removed Duplicates", "Index", 100, 1, Int64.Type),
+    #"Renamed Columns1" = Table.RenameColumns(#"Added Index",{{"Index", "ID_Instituicao"}})
+in
+    #"Renamed Columns1"
+
+let
+    Source = DimTrabalhadores,
+    #"Removed Other Columns" = Table.SelectColumns(Source,{"Região"}),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Other Columns"),
+    #"Added Index" = Table.AddIndexColumn(#"Removed Duplicates", "Index", 1, 1, Int64.Type),
+    #"Renamed Columns" = Table.RenameColumns(#"Added Index",{{"Index", "ID_Regiao"}, {"Região", "Regiao"}})
+in
+    #"Renamed Columns"
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\monitorizacao-sazonal-csh.csv"),[Delimiter=";", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Removed Columns" = Table.RemoveColumns(#"Promoted Headers",{"ID"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Removed Columns",{{"Período", type date}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Região/ARS", "Regiao"}, {"Indicador", "Descricao"}}),
+    #"Changed Type with Locale" = Table.TransformColumnTypes(#"Renamed Columns", {{"Valor", type number}}, "en-US"),
+    #"Rounded Off" = Table.TransformColumns(#"Changed Type with Locale",{{"Valor", each Number.Round(_, 2), type number}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Rounded Off","ARS Lisboa e Vale do Tejo","Região De Saúde LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","ARS Centro","Região De Saúde Do Centro",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","ARS Norte","Região De Saúde Norte",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","ARS Alentejo","Região De Saúde Do Alentejo",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","ARS Algarve","Região De Saúde Do Algarve",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4","%","Percentagem",Replacer.ReplaceText,{"Unidade"}),
+    #"Merged Queries" = Table.NestedJoin(#"Replaced Value5", {"Regiao"}, DimRegiao, {"Regiao"}, "DimRegiao", JoinKind.LeftOuter),
+    #"Expanded DimRegiao" = Table.ExpandTableColumn(#"Merged Queries", "DimRegiao", {"ID_Regiao"}, {"ID_Regiao"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Expanded DimRegiao",null,0,Replacer.ReplaceValue,{"ID_Regiao"}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Replaced Value6",{"Período", "ID_Regiao", "Regiao", "Descricao", "Valor", "Unidade"}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Reordered Columns",{{"ID_Regiao", Int64.Type}}),
+    #"Merged Queries1" = Table.NestedJoin(#"Changed Type1", {"Descricao"}, DimDescricao, {"Descricao"}, "DimDescricao", JoinKind.LeftOuter),
+    #"Expanded DimDescricao" = Table.ExpandTableColumn(#"Merged Queries1", "DimDescricao", {"ID_Descricao"}, {"ID_Descricao"}),
+    #"Merged Queries2" = Table.NestedJoin(#"Expanded DimDescricao", {"Período"}, DimCalendar, {"Data"}, "DimCalendar", JoinKind.LeftOuter),
+    #"Expanded DimCalendar" = Table.ExpandTableColumn(#"Merged Queries2", "DimCalendar", {"TimeKey"}, {"TimeKey"})
+in
+    #"Expanded DimCalendar"
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\custo-de-tratamento-mensal-por-doente.csv"),[Delimiter=";", Columns=9, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Renamed Columns" = Table.RenameColumns(#"Promoted Headers",{{"Região", "Regiao"}, {"Instituição Hospitalar", "Instituicao"}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Renamed Columns","LVT","Região De Saúde LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","Centro","Região De Saúde Do Centro",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","Norte","Região De Saúde Norte",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","Alentejo","Região De Saúde Do Alentejo",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","Algarve","Região De Saúde Do Algarve",Replacer.ReplaceText,{"Regiao"}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Replaced Value4",{{"Instituicao", Text.Proper, type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Capitalized Each Word",{{"Instituicao", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Instituicao", Text.Clean, type text}}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Cleaned Text","E.P.E.","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5","E. P. E.","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    #"Replaced Value7" = Table.ReplaceValue(#"Replaced Value6","Epe.","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    #"Changed Type with Locale" = Table.TransformColumnTypes(#"Replaced Value7", {{"Despesa", type number}}, "en-US"),
+    #"Changed Type with Locale1" = Table.TransformColumnTypes(#"Changed Type with Locale", {{"N.º doentes", Int64.Type}}, "en-US"),
+    #"Changed Type with Locale2" = Table.TransformColumnTypes(#"Changed Type with Locale1", {{"Custo Médio", type number}}, "en-US"),
+    #"Rounded Off" = Table.TransformColumns(#"Changed Type with Locale2",{{"Custo Médio", each Number.Round(_, 2), type number}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Rounded Off",{"Ponto ou Localização Geográfica", "Grupo"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Removed Columns",{{"Período", type date}}),
+    
+    // Adicionar TimeKey
+    #"Add TimeKey" = Table.AddColumn(#"Changed Type", "TimeKey", each 
+        Date.Year([Período]) * 10000 + Date.Month([Período]) * 100 + Date.Day([Período]), 
+        Int64.Type),
+    
+    // Adicionar ID_Regiao
+    #"Merged Regiao" = Table.NestedJoin(#"Add TimeKey", {"Regiao"}, DimRegiao, {"Regiao"}, "DimRegiao", JoinKind.LeftOuter),
+    #"Expanded DimRegiao" = Table.ExpandTableColumn(#"Merged Regiao", "DimRegiao", {"ID_Regiao"}, {"ID_Regiao"}),
+    
+    // Adicionar ID_Instituicao
+    #"Merged Instituicao" = Table.NestedJoin(#"Expanded DimRegiao", {"Instituicao"}, DimInstituicao, {"Instituicao"}, "DimInstituicao", JoinKind.LeftOuter),
+    #"Expanded DimInstituicao" = Table.ExpandTableColumn(#"Merged Instituicao", "DimInstituicao", {"ID_Instituicao"}, {"ID_Instituicao"}),
+    
+    // Substituir nulls por 0
+    #"Replace Nulls" = Table.ReplaceValue(#"Expanded DimInstituicao", null, 0, Replacer.ReplaceValue, {"ID_Regiao", "ID_Instituicao"}),
+    
+    // Definir tipos finais
+    #"Final Types" = Table.TransformColumnTypes(#"Replace Nulls", {
+        {"ID_Regiao", Int64.Type},
+        {"ID_Instituicao", Int64.Type},
+        {"TimeKey", Int64.Type}
+    })
+in
+    #"Final Types"
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\atividade-de-internamento-hospitalar.csv"),[Delimiter=";", Columns=7, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Dias de Internamento", Int64.Type}, {"Doentes Saídos", Int64.Type}, {"Período", type date}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Região", "Regiao"}, {"Instituição", "Instituicao"}}),
+    #"Filtered Rows" = Table.SelectRows(#"Renamed Columns", each true),
+    #"Removed Columns" = Table.RemoveColumns(#"Filtered Rows",{"Localização Geográfica"}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Removed Columns",{{"Regiao", Text.Proper, type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Capitalized Each Word",{{"Regiao", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Regiao", Text.Clean, type text}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Cleaned Text","Região De Saúde Lvt","Região De Saúde LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Capitalized Each Word1" = Table.TransformColumns(#"Replaced Value",{{"Instituicao", Text.Proper, type text}}),
+    #"Trimmed Text1" = Table.TransformColumns(#"Capitalized Each Word1",{{"Instituicao", Text.Trim, type text}}),
+    #"Cleaned Text1" = Table.TransformColumns(#"Trimmed Text1",{{"Instituicao", Text.Clean, type text}}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Cleaned Text1","Ppp","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    
+    // Adicionar TimeKey
+    #"Add TimeKey" = Table.AddColumn(#"Replaced Value1", "TimeKey", each 
+        Date.Year([Período]) * 10000 + Date.Month([Período]) * 100 + Date.Day([Período]), 
+        Int64.Type),
+    
+    // Adicionar ID_Regiao
+    #"Merged Regiao" = Table.NestedJoin(#"Add TimeKey", {"Regiao"}, DimRegiao, {"Regiao"}, "DimRegiao", JoinKind.LeftOuter),
+    #"Expanded DimRegiao" = Table.ExpandTableColumn(#"Merged Regiao", "DimRegiao", {"ID_Regiao"}, {"ID_Regiao"}),
+    
+    // Adicionar ID_Instituicao
+    #"Merged Instituicao" = Table.NestedJoin(#"Expanded DimRegiao", {"Instituicao"}, DimInstituicao, {"Instituicao"}, "DimInstituicao", JoinKind.LeftOuter),
+    #"Expanded DimInstituicao" = Table.ExpandTableColumn(#"Merged Instituicao", "DimInstituicao", {"ID_Instituicao"}, {"ID_Instituicao"}),
+    
+    // Substituir nulls por 0
+    #"Replace Nulls" = Table.ReplaceValue(#"Expanded DimInstituicao", null, 0, Replacer.ReplaceValue, {"ID_Regiao", "ID_Instituicao"}),
+    
+    // Definir tipos finais
+    #"Final Types" = Table.TransformColumnTypes(#"Replace Nulls", {
+        {"ID_Regiao", Int64.Type},
+        {"ID_Instituicao", Int64.Type},
+        {"TimeKey", Int64.Type}
+    })
+in
+    #"Final Types"
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\atendimentos-em-urgencia-triagem-manchester.csv"),[Delimiter=";", Columns=11, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Período", type date}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Vermelha", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Laranja", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Amarela", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Azul", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Branca", Int64.Type}, {"Nº Atendimentos s\ Triagem Manchester", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Verde", Int64.Type}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"Localização Geográfica"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Nº Atendimentos em Urgência SU Triagem Manchester -Vermelha", "Triagem Manchester Vermelha"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Laranja", "Triagem Manchester Laranja"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Amarela", "Triagem Manchester Amarela"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Verde", "Triagem Manchester Verde"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Azul", "Triagem Manchester Azul"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Branca", "Triagem Manchester Branca"}, {"Instituição", "Instituicao"}, {"Região", "Regiao"}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Renamed Columns",null,0,Replacer.ReplaceValue,{"Nº Atendimentos s\ Triagem Manchester"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value",null,0,Replacer.ReplaceValue,{"Triagem Manchester Branca"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1",null,0,Replacer.ReplaceValue,{"Triagem Manchester Azul"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2",null,0,Replacer.ReplaceValue,{"Triagem Manchester Verde"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3",null,0,Replacer.ReplaceValue,{"Triagem Manchester Amarela"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4",null,0,Replacer.ReplaceValue,{"Triagem Manchester Laranja"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5",null,0,Replacer.ReplaceValue,{"Triagem Manchester Vermelha"}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Replaced Value6",{{"Regiao", Text.Proper, type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Capitalized Each Word",{{"Regiao", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Regiao", Text.Clean, type text}}),
+    #"Capitalized Each Word1" = Table.TransformColumns(#"Cleaned Text",{{"Instituicao", Text.Proper, type text}}),
+    #"Replaced Value7" = Table.ReplaceValue(#"Capitalized Each Word1","Lvt","LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Trimmed Text1" = Table.TransformColumns(#"Replaced Value7",{{"Instituicao", Text.Trim, type text}}),
+    #"Cleaned Text1" = Table.TransformColumns(#"Trimmed Text1",{{"Instituicao", Text.Clean, type text}}),
+    #"Replaced Value8" = Table.ReplaceValue(#"Cleaned Text1","Ppp","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Replaced Value8",{{"Nº Atendimentos s\ Triagem Manchester", "Sem_Triagem_Manchester"}}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Renamed Columns1",{{"Triagem Manchester Vermelha", Int64.Type}, {"Triagem Manchester Laranja", Int64.Type}, {"Triagem Manchester Amarela", Int64.Type}, {"Triagem Manchester Verde", Int64.Type}, {"Triagem Manchester Azul", Int64.Type}, {"Triagem Manchester Branca", Int64.Type}, {"Sem_Triagem_Manchester", Int64.Type}}),
+    #"Unpivoted Only Selected Columns" = Table.Unpivot(#"Changed Type1", {"Sem_Triagem_Manchester", "Triagem Manchester Branca", "Triagem Manchester Azul", "Triagem Manchester Verde", "Triagem Manchester Amarela", "Triagem Manchester Laranja", "Triagem Manchester Vermelha"}, "Attribute", "Value"),
+    #"Renamed Columns2" = Table.RenameColumns(#"Unpivoted Only Selected Columns",{{"Attribute", "Cores"}, {"Value", "Num_Atendimentos"}}),
+    #"Merged Queries" = Table.NestedJoin(#"Renamed Columns2", {"Cores"}, DimCores, {"Cores"}, "DimCores", JoinKind.LeftOuter),
+    #"Expanded DimCores" = Table.ExpandTableColumn(#"Merged Queries", "DimCores", {"ID_Cores"}, {"ID_Cores"}),
+    #"Merged Queries1" = Table.NestedJoin(#"Expanded DimCores", {"Período"}, DimCalendar, {"Data"}, "DimCalendar", JoinKind.LeftOuter),
+    #"Expanded DimCalendar" = Table.ExpandTableColumn(#"Merged Queries1", "DimCalendar", {"TimeKey"}, {"TimeKey"})
+in
+    #"Expanded DimCalendar"
+
+let
+    Source = #table(
+        {"TriagemID", "Cor", "Gravidade", "TempoMaximo", "Prioridade", "Descricao"},
+        {
+            {1, "Vermelha", "Emergente", 0, 1, "Situação de risco de vida iminente"},
+            {2, "Laranja", "Muito Urgente", 10, 2, "Situação muito urgente, risco de vida ou falência de órgão"},
+            {3, "Amarela", "Urgente", 60, 3, "Situação urgente, mas sem risco de vida imediato"},
+            {4, "Verde", "Pouco Urgente", 120, 4, "Situação pouco urgente"},
+            {5, "Azul", "Não Urgente", 240, 5, "Situação não urgente"},
+            {6, "Branca", "Administrativa", 240, 6, "Situação administrativa, sem necessidade de urgência"},
+            {7, "Sem Triagem", "Não Classificado", 999, 7, "Atendimento sem triagem Manchester"}
+        }
+    ),
+    #"Changed Type" = Table.TransformColumnTypes(Source,{
+        {"TriagemID", Int64.Type}, 
+        {"Cor", type text}, 
+        {"Gravidade", type text}, 
+        {"TempoMaximo", Int64.Type}, 
+        {"Prioridade", Int64.Type}, 
+        {"Descricao", type text}
+    }),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Cor", "Cores"}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Renamed Columns","Vermelha","Triagem Manchester Vermelha",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","Laranja","Triagem Manchester Laranja",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","Amarela","Triagem Manchester Amarela",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","Verde","Triagem Manchester Verde",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","Azul","Triagem Manchester Azul",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4","Branca","Triagem Manchester Branca",Replacer.ReplaceText,{"Cores"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5","Sem Triagem","Sem_Triagem_Manchester",Replacer.ReplaceText,{"Cores"}),
+    #"Merged Queries" = Table.NestedJoin(#"Replaced Value6", {"Cores"}, DimCores, {"Cores"}, "DimCores", JoinKind.LeftOuter),
+    #"Expanded DimCores" = Table.ExpandTableColumn(#"Merged Queries", "DimCores", {"ID_Cores"}, {"ID_Cores"})
+in
+    #"Expanded DimCores"
+
+let
+    // Parâmetros de data
+    StartDate = #date(2013, 1, 1),
+    EndDate = #date(2025, 12, 31),
+    
+    // Criar lista de datas
+    DayCount = Duration.Days(Duration.From(EndDate - StartDate)) + 1,
+    Source = List.Dates(StartDate, DayCount, #duration(1,0,0,0)),
+    TableFromList = Table.FromList(Source, Splitter.SplitByNothing()),
+    
+    // Renomear e adicionar colunas essenciais
+    ChangedType = Table.TransformColumnTypes(TableFromList,{{"Column1", type date}}),
+    RenamedColumns = Table.RenameColumns(ChangedType,{{"Column1", "Data"}}),
+    
+    // TimeKey - Chave para relacionamentos
+    AddTimeKey = Table.AddColumn(RenamedColumns, "TimeKey", each 
+        Date.Year([Data]) * 10000 + Date.Month([Data]) * 100 + Date.Day([Data]), 
+        Int64.Type),
+    
+    // Hierarquia temporal: Ano > Trimestre > Mês > Dia
+    AddAno = Table.AddColumn(AddTimeKey, "Ano", each Date.Year([Data]), Int64.Type),
+    AddTrimestre = Table.AddColumn(AddAno, "Trimestre", each "T" & Number.ToText(Date.QuarterOfYear([Data])), type text),
+    AddMes = Table.AddColumn(AddTrimestre, "Mes", each Date.Month([Data]), Int64.Type),
+    AddMesNome = Table.AddColumn(AddMes, "MesNome", each Date.ToText([Data], "MMMM", "pt-PT"), type text),
+    AddDia = Table.AddColumn(AddMesNome, "Dia", each Date.Day([Data]), Int64.Type),
+    AddDiaSemana = Table.AddColumn(AddDia, "DiaSemana", each Date.ToText([Data], "dddd", "pt-PT"), type text),
+    
+    // Adicionar Sazonalidade (baseado em hemisfério norte - Portugal)
+    AddSazonalidade = Table.AddColumn(AddDiaSemana, "Sazonalidade", each 
+        let mes = Date.Month([Data])
+        in if mes = 12 or mes = 1 or mes = 2 then "Inverno"
+           else if mes >= 3 and mes <= 5 then "Primavera"
+           else if mes >= 6 and mes <= 8 then "Verão"
+           else "Outono",
+        type text),
+    
+    // Coluna auxiliar para ordenação de mês/trimestre
+    AddAnoMes = Table.AddColumn(AddSazonalidade, "AnoMes", each 
+        Text.From(Date.Year([Data])) & "-" & Text.PadStart(Text.From(Date.Month([Data])), 2, "0"), 
+        type text),
+    
+    // Ordenar por TimeKey
+    SortedRows = Table.Sort(AddAnoMes,{{"TimeKey", Order.Ascending}})
+in
+    SortedRows
+
+let
+    // Base: Atendimentos com todos os IDs já preparados
+    Source = DimAtendimentosUrgencia,
+    
+    // Selecionar colunas necessárias (já tem TimeKey e ID_Cores da DimAtendimentosUrgencia)
+    SelectColumns = Table.SelectColumns(Source, {"TimeKey", "Regiao", "Instituicao", "ID_Cores", "Num_Atendimentos"}),
+    
+    // Adicionar ID_Regiao
+    MergeRegiao = Table.NestedJoin(SelectColumns, {"Regiao"}, 
+        DimRegiao, {"Regiao"}, 
+        "DimRegiao", JoinKind.LeftOuter),
+    ExpandRegiao = Table.ExpandTableColumn(MergeRegiao, "DimRegiao", {"ID_Regiao"}, {"ID_Regiao"}),
+    
+    // Adicionar ID_Instituicao
+    MergeInstituicao = Table.NestedJoin(ExpandRegiao, {"Instituicao"}, 
+        DimInstituicao, {"Instituicao"}, 
+        "DimInstituicao", JoinKind.LeftOuter),
+    ExpandInstituicao = Table.ExpandTableColumn(MergeInstituicao, "DimInstituicao", {"ID_Instituicao"}, {"ID_Instituicao"}),
+    
+    // Remover colunas de texto descritivo
+    RemoveTextColumns = Table.RemoveColumns(ExpandInstituicao, {"Regiao", "Instituicao"}),
+    
+    // Substituir nulls por 0
+    ReplaceNulls = Table.ReplaceValue(RemoveTextColumns, null, 0, Replacer.ReplaceValue, {
+        "ID_Regiao", "ID_Instituicao", "ID_Cores", "Num_Atendimentos"
+    }),
+    
+    // Adicionar FactID (chave primária)
+    AddFactID = Table.AddIndexColumn(ReplaceNulls, "FactID", 1, 1, Int64.Type),
+    
+    // Reordenar colunas (estrutura Star Schema)
+    ReorderColumns = Table.ReorderColumns(AddFactID, {
+        "FactID",
+        "TimeKey",
+        "ID_Regiao",
+        "ID_Instituicao",
+        "ID_Cores",
+        "Num_Atendimentos"
+    }),
+    
+    // Definir tipos finais
+    FinalTypes = Table.TransformColumnTypes(ReorderColumns, {
+        {"FactID", Int64.Type},
+        {"TimeKey", Int64.Type},
+        {"ID_Regiao", Int64.Type},
+        {"ID_Instituicao", Int64.Type},
+        {"ID_Cores", Int64.Type},
+        {"Num_Atendimentos", Int64.Type}
+    }),
+    
+    // Filtrar registros válidos
+    FilteredRows = Table.SelectRows(FinalTypes, each [TimeKey] <> null and [TimeKey] <> 0)
+in
+    FilteredRows
+
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\monitorizacao-sazonal-csh.csv"),[Delimiter=";", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Removed Columns" = Table.RemoveColumns(#"Promoted Headers",{"ID"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Removed Columns",{{"Período", type date}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Região/ARS", "Regiao"}, {"Indicador", "Descricao"}}),
+    #"Changed Type with Locale" = Table.TransformColumnTypes(#"Renamed Columns", {{"Valor", type number}}, "en-US"),
+    #"Rounded Off" = Table.TransformColumns(#"Changed Type with Locale",{{"Valor", each Number.Round(_, 2), type number}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Rounded Off","ARS Lisboa e Vale do Tejo","Região De Saúde LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","ARS Centro","Região De Saúde Do Centro",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1","ARS Norte","Região De Saúde Norte",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","ARS Alentejo","Região De Saúde Do Alentejo",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","ARS Algarve","Região De Saúde Do Algarve",Replacer.ReplaceText,{"Regiao"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4","%","Percentagem",Replacer.ReplaceText,{"Unidade"}),
+    #"Merged Queries" = Table.NestedJoin(#"Replaced Value5", {"Regiao"}, DimRegiao, {"Regiao"}, "DimRegiao", JoinKind.LeftOuter),
+    #"Expanded DimRegiao" = Table.ExpandTableColumn(#"Merged Queries", "DimRegiao", {"ID_Regiao"}, {"ID_Regiao"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Expanded DimRegiao",null,0,Replacer.ReplaceValue,{"ID_Regiao"}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Replaced Value6",{"Período", "ID_Regiao", "Regiao", "Descricao", "Valor", "Unidade"}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Reordered Columns",{{"ID_Regiao", Int64.Type}}),
+    #"Removed Other Columns" = Table.SelectColumns(#"Changed Type1",{"Descricao"}),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Other Columns"),
+    #"Added Index" = Table.AddIndexColumn(#"Removed Duplicates", "Index", 500, 1, Int64.Type),
+    #"Renamed Columns1" = Table.RenameColumns(#"Added Index",{{"Index", "ID_Descricao"}})
+in
+    #"Renamed Columns1"
+
+let
+    Source = Csv.Document(File.Contents("D:\Ambiente de trabalho\TransformacaoBi\Report de Ineficiências nas Urgências Hospitalares\atendimentos-em-urgencia-triagem-manchester.csv"),[Delimiter=";", Columns=11, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Período", type date}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Vermelha", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Laranja", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Amarela", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Azul", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Branca", Int64.Type}, {"Nº Atendimentos s\ Triagem Manchester", Int64.Type}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Verde", Int64.Type}}),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"Localização Geográfica"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Nº Atendimentos em Urgência SU Triagem Manchester -Vermelha", "Triagem Manchester Vermelha"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Laranja", "Triagem Manchester Laranja"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Amarela", "Triagem Manchester Amarela"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Verde", "Triagem Manchester Verde"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Azul", "Triagem Manchester Azul"}, {"Nº Atendimentos em Urgência SU Triagem Manchester -Branca", "Triagem Manchester Branca"}, {"Instituição", "Instituicao"}, {"Região", "Regiao"}}),
+    #"Replaced Value" = Table.ReplaceValue(#"Renamed Columns",null,0,Replacer.ReplaceValue,{"Nº Atendimentos s\ Triagem Manchester"}),
+    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value",null,0,Replacer.ReplaceValue,{"Triagem Manchester Branca"}),
+    #"Replaced Value2" = Table.ReplaceValue(#"Replaced Value1",null,0,Replacer.ReplaceValue,{"Triagem Manchester Azul"}),
+    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2",null,0,Replacer.ReplaceValue,{"Triagem Manchester Verde"}),
+    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3",null,0,Replacer.ReplaceValue,{"Triagem Manchester Amarela"}),
+    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4",null,0,Replacer.ReplaceValue,{"Triagem Manchester Laranja"}),
+    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5",null,0,Replacer.ReplaceValue,{"Triagem Manchester Vermelha"}),
+    #"Capitalized Each Word" = Table.TransformColumns(#"Replaced Value6",{{"Regiao", Text.Proper, type text}}),
+    #"Trimmed Text" = Table.TransformColumns(#"Capitalized Each Word",{{"Regiao", Text.Trim, type text}}),
+    #"Cleaned Text" = Table.TransformColumns(#"Trimmed Text",{{"Regiao", Text.Clean, type text}}),
+    #"Capitalized Each Word1" = Table.TransformColumns(#"Cleaned Text",{{"Instituicao", Text.Proper, type text}}),
+    #"Replaced Value7" = Table.ReplaceValue(#"Capitalized Each Word1","Lvt","LVT",Replacer.ReplaceText,{"Regiao"}),
+    #"Trimmed Text1" = Table.TransformColumns(#"Replaced Value7",{{"Instituicao", Text.Trim, type text}}),
+    #"Cleaned Text1" = Table.TransformColumns(#"Trimmed Text1",{{"Instituicao", Text.Clean, type text}}),
+    #"Replaced Value8" = Table.ReplaceValue(#"Cleaned Text1","Ppp","Epe",Replacer.ReplaceText,{"Instituicao"}),
+    #"Renamed Columns1" = Table.RenameColumns(#"Replaced Value8",{{"Nº Atendimentos s\ Triagem Manchester", "Sem_Triagem_Manchester"}}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Renamed Columns1",{{"Triagem Manchester Vermelha", Int64.Type}, {"Triagem Manchester Laranja", Int64.Type}, {"Triagem Manchester Amarela", Int64.Type}, {"Triagem Manchester Verde", Int64.Type}, {"Triagem Manchester Azul", Int64.Type}, {"Triagem Manchester Branca", Int64.Type}, {"Sem_Triagem_Manchester", Int64.Type}}),
+    #"Unpivoted Only Selected Columns" = Table.Unpivot(#"Changed Type1", {"Sem_Triagem_Manchester", "Triagem Manchester Branca", "Triagem Manchester Azul", "Triagem Manchester Verde", "Triagem Manchester Amarela", "Triagem Manchester Laranja", "Triagem Manchester Vermelha"}, "Attribute", "Value"),
+    #"Renamed Columns2" = Table.RenameColumns(#"Unpivoted Only Selected Columns",{{"Attribute", "Cores"}, {"Value", "Num_Atendimentos"}}),
+    #"Removed Other Columns" = Table.SelectColumns(#"Renamed Columns2",{"Cores"}),
+    #"Removed Duplicates" = Table.Distinct(#"Removed Other Columns"),
+    #"Added Index" = Table.AddIndexColumn(#"Removed Duplicates", "Index", 300, 1, Int64.Type),
+    #"Renamed Columns3" = Table.RenameColumns(#"Added Index",{{"Index", "ID_Cores"}})
+in
+    #"Renamed Columns3"
